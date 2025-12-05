@@ -36,4 +36,10 @@ bool doda_tsdb_build_time_index(DodaTSDB *ts, DodaIndex *idx);
 // Delete samples older than cutoff time
 DodaStatus doda_tsdb_delete_older_than(DodaTSDB *ts, int cutoff_time, size_t *deleted_out);
 
+// Aggregations over non-deleted rows for numeric columns
+bool agg_min_int(const Table *t, const char *col_name, int *out);
+bool agg_max_int(const Table *t, const char *col_name, int *out);
+bool agg_avg_int(const Table *t, const char *col_name, double *out);
+size_t agg_count(const Table *t);
+
 #endif // DRIVERSQL_TIMESERIES

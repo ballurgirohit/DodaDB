@@ -44,10 +44,32 @@ static void test_timeseries(void) {
 }
 #endif
 
+// Aggregations test
+static void test_aggregations(void) {
+    const char *cols[] = {"id", "time", "value"};
+    DodaColumnType types[] = {COL_INT, COL_INT, COL_INT};
+    DodaTable t; doda_init_table(&t, "agg_metrics", 3, cols, types);
+
+    // Insert samples
+    DodaTSDB ts; doda_tsdb_init(&ts, &t, "time");
+    doda_tsdb_append_int3(&ts, 1, 1000, 40);
+    doda_tsdb_append_int3(&ts, 2, 1500, 50);
+    doda_tsdb_append_int3(&ts, 3, 2000, 35);
+    doda_tsdb_append_int3(&ts, 4, 2500, 60);
+
+    // Run aggregations on 'value'
+    int minv=0, maxv=0; double avg=0.0; size_t cnt=0;
+    if (agg_min_int((const Table *)&t, "value", &minv)) printf("min(value)=%d\n", minv);
+    if (agg_max_int((const Table *)&t, "value", &maxv)) printf("max(value)=%d\n", maxv);
+    if (agg_avg_int((const Table *)&t, "value", &avg)) printf("avg(value)=%.2f\n", avg);
+    cnt = agg_count((const Table *)&t); printf("count(rows)=%zu\n", cnt);
+}
+
 int main(void) {
     // test_basic();
 #ifdef DRIVERSQL_TIMESERIES
-    test_timeseries();
+    // test_timeseries();
 #endif
+    test_aggregations();
     return 0;
 }

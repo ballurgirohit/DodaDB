@@ -450,3 +450,26 @@ IndexStatus index_select_op(const Table *t, const Index *idx, Op op, const void 
 #endif
     return IDX_UNSUPPORTED;
 }
+
+bool agg_min_int(const Table *t, const char *col_name, int *out) {
+    if (!t || !col_name || !out) return false; int idx = column_index(t, col_name); if (idx < 0) return false;
+    const Column *c = &t->columns[idx]; if (c->type != COL_INT) return false; bool any=false; int minv=0;
+    for (size_t r=0; r<t->count; ++r) { if (is_deleted(t,r)) continue; int v=c->data.int_data[r]; if (!any || v<minv) { minv=v; any=true; } }
+    if (!any) return false; *out=minv; return true;
+}
+
+bool agg_max_int(const Table *t, const char *col_name, int *out) {
+    if (!t || !col_name || !out) return false; int idx = column_index(t, col_name); if (idx < 0) return false;
+    const Column *c = &t->columns[idx]; if (c->type != COL_INT) return false; bool any=false; int maxv=0;
+    for (size_t r=0; r<t->count; ++r) { if (is_deleted(t,r)) continue; int v=c->data.int_data[r]; if (!any || v>maxv) { maxv=v; any=true; } }
+    if (!any) return false; *out=maxv; return true;
+}
+
+bool agg_avg_int(const Table *t, const char *col_name, double *out) {
+    if (!t || !col_name || !out) return false; int idx = column_index(t, col_name); if (idx < 0) return false;
+    const Column *c = &t->columns[idx]; if (c->type != COL_INT) return false; size_t n=0; long long sum=0;
+    for (size_t r=0; r<t->count; ++r) { if (is_deleted(t,r)) continue; sum += (long long)c->data.int_data[r]; n++; }
+    if (n==0) return false; *out = (double)sum / (double)n; return true;
+}
+
+size_t agg_count(const Table *t) { if (!t) return 0; size_t n=0; for (size_t r=0; r<t->count; ++r) if (!is_deleted(t,r)) n++; return n; }
