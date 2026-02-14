@@ -1,6 +1,9 @@
 cmake_minimum_required(VERSION 3.15)
 project(DODA C)
 
+# Enable CTest/CTestTestfile.cmake generation
+include(CTest)
+
 set(CMAKE_C_STANDARD 99)
 set(CMAKE_C_STANDARD_REQUIRED ON)
 set(CMAKE_C_EXTENSIONS OFF)
@@ -71,4 +74,32 @@ if (NOT DRIVERSQL_FIRMWARE)
     if (CMAKE_C_COMPILER_ID MATCHES "Clang|AppleClang|GNU")
         target_compile_options(doda PRIVATE -Wall -Wextra -Wpedantic)
     endif()
+endif()
+
+# Unit tests (host only)
+option(DODA_BUILD_TESTS "Build unit tests" ON)
+
+if (NOT DRIVERSQL_FIRMWARE AND DODA_BUILD_TESTS)
+    add_executable(doda_tests
+        test_main.c
+        test_framework.c
+        test_core.c
+        test_timeseries.c
+        test_persist.c
+        $<TARGET_OBJECTS:doda_core>
+        $<$<BOOL:${DODA_PERSIST}>:$<TARGET_OBJECTS:doda_persist>>
+        $<$<BOOL:${DODA_BUILD_FLASH_STUB}>:$<TARGET_OBJECTS:doda_flash_stub>>
+    )
+    target_include_directories(doda_tests PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
+
+    if (DRIVERSQL_TIMESERIES)
+        target_compile_definitions(doda_tests PRIVATE DRIVERSQL_TIMESERIES)
+    endif()
+
+    if (CMAKE_C_COMPILER_ID MATCHES "Clang|AppleClang|GNU")
+        target_compile_options(doda_tests PRIVATE -Wall -Wextra -Wpedantic)
+    endif()
+
+    # Register with CTest
+    add_test(NAME doda_tests COMMAND doda_tests)
 endif()
