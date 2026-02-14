@@ -164,5 +164,32 @@ Basic aggregations over **non-deleted** rows for INT columns:
 - `DODA_PERSIST=ON|OFF`: build persistence module (`doda_persist.*`)
 - `DODA_BUILD_FLASH_STUB=ON|OFF`: compile the flash/EEPROM template backend (OFF by default)
 
+## Unit tests
+DODA uses a **small in-repo unit test framework** (not an external dependency like Unity/cmocka).
+
+- Framework: `test_framework.h/.c` (registration + assertions)
+- Runner: `test_main.c` (registers suites and calls `doda_test_run_all()`)
+- Test suites:
+  - `test_core.c`
+  - `test_timeseries.c`
+  - `test_persist.c`
+
+### Build (host)
+Unit tests are **host-only** and require firmware mode to be OFF.
+
+- Configure:
+  - cmake -S . -B build_tests -DDRIVERSQL_FIRMWARE=OFF -DDODA_BUILD_TESTS=ON
+- Build:
+  - cmake --build build_tests -j
+
+### Run
+- Run the test executable directly:
+  - ./build_tests/doda_tests
+
+- Or run via CTest:
+  - ctest --test-dir build_tests --output-on-failure
+
+> Note: `ctest` works because the build registers `doda_tests` with `add_test(...)`.
+
 ## License
 MIT License. See LICENSE.
