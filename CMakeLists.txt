@@ -60,7 +60,7 @@ endif()
 
 if (NOT DRIVERSQL_FIRMWARE)
     add_executable(doda
-        tests.c
+        main.c
         $<TARGET_OBJECTS:doda_core>
         $<$<BOOL:${DODA_PERSIST}>:$<TARGET_OBJECTS:doda_persist>>
         $<$<BOOL:${DODA_BUILD_FLASH_STUB}>:$<TARGET_OBJECTS:doda_flash_stub>>

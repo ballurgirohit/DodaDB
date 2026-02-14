@@ -51,6 +51,25 @@ High-value additions that fit embedded constraints:
   - cmake --build build
   - ./build/doda
 
+- Host/demo binary (timeseries + persistence + flash-stub adapter):
+  - cmake -S . -B build \
+      -DDRIVERSQL_FIRMWARE=OFF \
+      -DDRIVERSQL_TIMESERIES=ON \
+      -DDODA_PERSIST=ON \
+      -DDODA_BUILD_FLASH_STUB=ON
+  - cmake --build build
+  - ./build/doda
+
+- Host/demo binary (disable flash-stub adapter):
+  - cmake -S . -B build \
+      -DDRIVERSQL_FIRMWARE=OFF \
+      -DDRIVERSQL_TIMESERIES=ON \
+      -DDODA_PERSIST=ON \
+      -DDODA_BUILD_FLASH_STUB=OFF
+  - cmake --build build
+
+  > Note: with `DDODA_BUILD_FLASH_STUB=OFF`, `main.c` must not call `test_flash_stub_with_persistence()`.
+
 - Host/tests (disable persistence):
   - cmake -S . -B build \
       -DDRIVERSQL_FIRMWARE=OFF \
@@ -177,8 +196,9 @@ DODA uses a **small in-repo unit test framework** (not an external dependency li
 ### Build (host)
 Unit tests are **host-only** and require firmware mode to be OFF.
 
-- Configure:
-  - cmake -S . -B build_tests -DDRIVERSQL_FIRMWARE=OFF -DDODA_BUILD_TESTS=ON
+- Configure (tests only; does not require the flash-stub adapter):
+  - cmake -S . -B build_tests -DDRIVERSQL_FIRMWARE=OFF -DDODA_BUILD_TESTS=ON -DDODA_BUILD_FLASH_STUB=OFF
+
 - Build:
   - cmake --build build_tests -j
 

@@ -241,7 +241,11 @@ int main(void) {
 #ifndef DRIVERSQL_FIRMWARE
     // test_persistence_roundtrip();
     test_persistence_load_only();
+#if defined(DODA_BUILD_FLASH_STUB)
     test_flash_stub_with_persistence();
+#else
+    // Flash-stub demo requires -DDODA_BUILD_FLASH_STUB=ON (CMake option) to link.
+#endif
 #endif
     return 0;
 }
