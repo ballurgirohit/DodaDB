@@ -35,21 +35,6 @@ High-value additions that fit embedded constraints:
 - **Power-failure resilience**: atomic commits (double-buffer) or a lightweight WAL.
 - **Edge-to-cloud sync hooks**: batch export to MQTT/HTTP (application-provided callbacks).
 
-## Performance (placeholder)
-Add real benchmarks once available:
-
-| Feature | Footprint / Latency |
-|---|---|
-| RAM usage | ~[X] KB (depends on MAX_ROWS, types enabled) |
-| Code size | ~[Y] KB (depends on features compiled) |
-| Write latency | [Z] ms (depends on storage backend, flash erase/write) |
-
-### Host benchmark (macOS, Release build)
-Measured on macOS by building with `-DCMAKE_BUILD_TYPE=Release` and running the bundled `./doda` test binary (includes persistence load-only + flash-stub round-trip in RAM):
-- End-to-end runtime: **~0.83 s** (single run)
-
-> Notes: this is not a micro-benchmark of DB operations; it includes process startup, I/O/printing (if enabled), and test harness overhead. For meaningful numbers, add dedicated insert/query micro-benchmarks and report rows/second.
-
 ## Community, contributions, and license
 - **License**: MIT (permissive for hobby and commercial use).
 - **Contributions welcome**: especially from engineers with RTOS/MCU experience (flash wear-leveling, power-fail safe writes, ISR-safe patterns, and profiling/benchmarks).
