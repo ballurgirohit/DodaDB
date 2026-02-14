@@ -1,10 +1,12 @@
 # DODA — Data Ordered Dense Array
 A small, deterministic timeseries data store for embedded/IoT firmware.
 
-## Overview
-- In-memory, fixed-size arrays; no heap or filesystem.
-- Optimized for integer timestamped samples and simple range queries.
-- Deterministic operations with bounded memory and timing.
+## The “Why” (the logic)
+**DODA** stands for **Data Ordered Dense Array**.
+
+- **The name**: data is kept in *ordered* (typically time-ordered) sequences and stored in *dense* contiguous arrays. This maximizes cache locality, keeps memory use predictable, and makes performance easy to reason about on MCUs.
+- **The problem**: popular TSDB/database options (e.g., Influx-like stacks, SQLite) are often too heavy for a bare-metal RTOS or a tiny MCU: they bring filesystem assumptions, dynamic allocation, larger code size, and less predictable latencies.
+- **The solution**: DODA sits in the middle ground—structured storage (schema, indexing, predicates) without the overhead of a full database server.
 
 ## Key features
 - Timeseries first: append samples with INT timestamps; range queries (>=, >, <).
@@ -12,6 +14,45 @@ A small, deterministic timeseries data store for embedded/IoT firmware.
 - Optional per-column sorted index for efficient range scans.
 - Safe deletes with slot reuse via a free list.
 - Compile-time feature gates to reduce footprint (disable text/float/double/pointers/stdio).
+
+## Technical features (firmware-oriented)
+- **Resource constrained**: fixed-size RAM tables; bounded runtime; no mandatory heap usage.
+- **Flash-memory aware**: persistence is implemented as sequential streaming I/O (so platform backends *can* minimize write amplification). CRC32 is supported to detect corruption/partial writes.
+- **SQL-like interface**: SQL-*style* querying via C APIs (e.g., `select_where_*`) and optional driver-facing helpers.
+- **Time-series core**: timestamp-first layout with optional sorted indexes. Complexity depends on whether an index is built/used: full scan `O(n)`; index-assisted queries can be `O(log n + R)` (binary search + scan of result range).
+
+## SQL query architecture (design notes)
+DODA’s SQL-like querying is designed to remain safe and small on embedded systems:
+- **Predicate filtering**: predicates are evaluated directly against dense column arrays; deleted rows are skipped via the deleted bitset.
+- **Index acceleration**: when an `Index` is built for a column, equality/range operations can be served by binary search + contiguous scan over matching rows.
+
+> Note: this repository currently exposes the query surface via C APIs (not a text SQL parser). If/when a text `SELECT ... WHERE ...` parser is added, it should follow embedded constraints (single pass, bounded buffers, no heap).
+
+## Proposed roadmap (future features)
+High-value additions that fit embedded constraints:
+- **Data compression**: delta-of-delta timestamps and Gorilla/XOR encoding for numeric series.
+- **Retention policies**: automatic pruning / downsampling of old samples.
+- **Power-failure resilience**: atomic commits (double-buffer) or a lightweight WAL.
+- **Edge-to-cloud sync hooks**: batch export to MQTT/HTTP (application-provided callbacks).
+
+## Performance (placeholder)
+Add real benchmarks once available:
+
+| Feature | Footprint / Latency |
+|---|---|
+| RAM usage | ~[X] KB (depends on MAX_ROWS, types enabled) |
+| Code size | ~[Y] KB (depends on features compiled) |
+| Write latency | [Z] ms (depends on storage backend, flash erase/write) |
+
+### Host benchmark (macOS, Release build)
+Measured on macOS by building with `-DCMAKE_BUILD_TYPE=Release` and running the bundled `./doda` test binary (includes persistence load-only + flash-stub round-trip in RAM):
+- End-to-end runtime: **~0.83 s** (single run)
+
+> Notes: this is not a micro-benchmark of DB operations; it includes process startup, I/O/printing (if enabled), and test harness overhead. For meaningful numbers, add dedicated insert/query micro-benchmarks and report rows/second.
+
+## Community, contributions, and license
+- **License**: MIT (permissive for hobby and commercial use).
+- **Contributions welcome**: especially from engineers with RTOS/MCU experience (flash wear-leveling, power-fail safe writes, ISR-safe patterns, and profiling/benchmarks).
 
 ## Build and run
 - Prerequisites: CMake 3.15+, Clang/AppleClang (macOS)
