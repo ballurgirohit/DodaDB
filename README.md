@@ -16,13 +16,38 @@ A small, deterministic timeseries data store for embedded/IoT firmware.
 ## Build and run
 - Prerequisites: CMake 3.15+, Clang/AppleClang (macOS)
 - Clean: rm -rf build
-- Host/tests (timeseries):
-  - cmake -S . -B build -DDRIVERSQL_FIRMWARE=OFF -DDRIVERSQL_TIMESERIES=ON
+
+- Host/tests (timeseries + persistence, default):
+  - cmake -S . -B build \
+      -DDRIVERSQL_FIRMWARE=OFF \
+      -DDRIVERSQL_TIMESERIES=ON \
+      -DDODA_PERSIST=ON
   - cmake --build build
   - ./build/doda
-- Firmware-only library:
-  - cmake -S . -B build -DDRIVERSQL_FIRMWARE=ON
+
+- Host/tests (disable persistence):
+  - cmake -S . -B build \
+      -DDRIVERSQL_FIRMWARE=OFF \
+      -DDRIVERSQL_TIMESERIES=ON \
+      -DDODA_PERSIST=OFF
+
+- Host/tests (disable CRC for persistence format):
+  - cmake -S . -B build \
+      -DDRIVERSQL_FIRMWARE=OFF \
+      -DDRIVERSQL_TIMESERIES=ON \
+      -DDODA_PERSIST=ON \
+      -DDODA_PERSIST_NO_CRC=ON
+
+- Firmware-only library (no host test binary):
+  - cmake -S . -B build \
+      -DDRIVERSQL_FIRMWARE=ON
   - cmake --build build
+
+- Optional: compile the flash/EEPROM backend template (usually OFF; provided to copy into your project):
+  - cmake -S . -B build \
+      -DDRIVERSQL_FIRMWARE=OFF \
+      -DDODA_PERSIST=ON \
+      -DDODA_BUILD_FLASH_STUB=ON
 
 ## Usage (host/tests)
 - Define schema with INT time column; initialize and append; query ranges.
@@ -70,6 +95,48 @@ A small, deterministic timeseries data store for embedded/IoT firmware.
   - Reduce MAX_ROWS and MAX_TEXT_LEN to fit RAM budget.
   - Disable unused types via feature gates to remove their storage entirely.
   - For timeseries, prefer INT metrics (scaled units) to minimize footprint.
+
+## Persistence (optional)
+DODA is in-memory by default. Persistence is provided by a **separate, portable module** that serializes tables to a platform-defined storage backend.
+
+Files:
+- `doda_persist.h/.c`: portable save/load and binary format
+- `doda_storage_flash_stub.h/.c`: MCU flash/EEPROM **template** backend (HAL hooks required)
+
+### How it works
+- The core engine never touches files/flash.
+- You provide a `DodaStorage` with callbacks:
+  - `write_all(ctx, data, size)`
+  - `read_all(ctx, data, size)`
+  - optional `erase(ctx)`
+- `doda_persist_save_table()` writes:
+  1) header (magic/version/build limits)
+  2) schema (column names + types)
+  3) row index list (non-deleted rows)
+  4) row payload (non-deleted rows only)
+- `doda_persist_load_table()` validates header/schema and rebuilds the table in RAM.
+
+### Integrity (CRC32)
+- CRC32 is enabled by default and detects corruption/power-fail partial writes.
+- Disable CRC at build time with: `-DDODA_PERSIST_NO_CRC`
+
+### Notes / constraints
+- Deleted rows are not stored (load compacts rows).
+- Pointer columns are not persisted.
+- Load validates build limits (e.g., `MAX_ROWS`, `HASH_SIZE`) match the persisted file.
+
+## Aggregations (helpers)
+Basic aggregations over **non-deleted** rows for INT columns:
+- `agg_min_int(t, "col", &out)`
+- `agg_max_int(t, "col", &out)`
+- `agg_avg_int(t, "col", &out)`
+- `agg_count(t)`
+
+## CMake options
+- `DRIVERSQL_FIRMWARE=ON|OFF`: build firmware-only (no host test binary)
+- `DRIVERSQL_TIMESERIES=ON|OFF`: enable timeseries helpers
+- `DODA_PERSIST=ON|OFF`: build persistence module (`doda_persist.*`)
+- `DODA_BUILD_FLASH_STUB=ON|OFF`: compile the flash/EEPROM template backend (OFF by default)
 
 ## License
 MIT License. See LICENSE.
